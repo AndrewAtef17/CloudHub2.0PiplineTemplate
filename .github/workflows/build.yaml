@@ -33,7 +33,10 @@ jobs:
           echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-prod' }}" >> $GITHUB_ENV
           echo "new_version=1.0.${{ github.run_number }}" >> $GITHUB_ENV
 
-
+      - name: Increment version
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        run: |
+          mvn versions:set -DnewVersion=${{ env.new_version }} -DgenerateBackupPoms=false
 
       - name: Publish to Exchange
         run: |
