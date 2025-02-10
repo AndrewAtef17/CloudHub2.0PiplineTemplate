@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [ develop, qa, production ]  # Specify branches for PRss
     
+# Add permissions for the GITHUB_TOKEN
+permissions:
+  contents: write  # Allows pushing changes to the repository
+
 jobs:         
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}  # Use GITHUB_TOKEN by default, 
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -20,31 +26,59 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: "zulu"
-          java-version: 8
+          java-version: 17
 
       - name: Set environment variables
         id: set_env
         run: |
           echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'qa' && 'QA' || 'Production' }}" >> $GITHUB_ENV
           echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-prod' }}" >> $GITHUB_ENV
-          echo "new_version=1.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Read current version from pom.xml
+        id: read_version
+        run: |
+          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current version: $CURRENT_VERSION"
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
 
       - name: Increment version
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        id: increment_version
+        run: |
+          CURRENT_VERSION=${{ env.current_version }}
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update pom.xml with new version
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
           mvn versions:set -DnewVersion=${{ env.new_version }} -DgenerateBackupPoms=false
 
+      - name: Commit updated pom.xml
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit -m "Increment version to ${{ env.new_version }}"
+          git push origin HEAD:develop
+          
       - name: Publish to Exchange
         run: |
           mvn deploy --settings .maven/settings.xml -DskipMunitTests \
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
-          -Dapp.name=test-api \
+          -Dapp.name=test-api-pipeline \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
       - name: Deploy to CloudHub 2.0
         run: |
@@ -52,5 +86,5 @@ jobs:
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
-          -Dapp.name=test-api \
+          -Dapp.name=test-api-pipeline \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
