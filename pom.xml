@@ -3,14 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>041bb8e4-6d29-4baa-82ae-62c58b30ce8d</groupId>
     <artifactId>test-api-pipeline</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>mule-application</packaging>
     <name>${app.name}${app.nameSuffix}</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <app.runtime>4.9.0</app.runtime>
+        <app.runtime>4.8.4</app.runtime>
         <mule.maven.plugin.version>4.3.0</mule.maven.plugin.version>
         <targetName>Cloudhub-EU-Central-1</targetName>
     </properties>
