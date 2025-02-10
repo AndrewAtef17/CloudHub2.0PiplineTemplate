@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>041bb8e4-6d29-4baa-82ae-62c58b30ce8d</groupId>
     <artifactId>test-api-pipeline</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <packaging>mule-application</packaging>
     <name>${app.name}${app.nameSuffix}</name>
 
