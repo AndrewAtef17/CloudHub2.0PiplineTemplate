@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [ develop, qa, production ]  # Specify branches for PRss
     
+# Add permissions for the GITHUB_TOKEN
+permissions:
+  contents: write  # Allows pushing changes to the repository
+
 jobs:         
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}  # Use GITHUB_TOKEN by default, 
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -62,10 +68,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/AndrewAtef17/CloudHub2.0PiplineTemplate.git
           git add pom.xml
           git commit -m "Increment version to ${{ env.new_version }}"
-          git push origin develop
+          git push origin HEAD:develop
           
       - name: Publish to Exchange
         run: |
