@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>041bb8e4-6d29-4baa-82ae-62c58b30ce8d</groupId>
     <artifactId>test-api-pipeline</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>mule-application</packaging>
     <name>${app.name}${app.nameSuffix}</name>
 
@@ -35,6 +35,7 @@
                         <environment>${env}</environment>
                         <target>${targetName}</target>
                         <muleVersion>${app.runtime}</muleVersion>
+                        <javaVersion>17</javaVersion>
                         <server>Repository</server>
                         <applicationName>${app.name}${app.nameSuffix}</applicationName>
                         <releaseChannel>Edge</releaseChannel>
