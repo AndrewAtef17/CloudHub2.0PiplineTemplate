@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>041bb8e4-6d29-4baa-82ae-62c58b30ce8d</groupId>
-    <artifactId>test-api</artifactId>
+    <artifactId>test-api-pipeline</artifactId>
     <version>1.0.0</version>
     <packaging>mule-application</packaging>
     <name>${app.name}${app.nameSuffix}</name>
