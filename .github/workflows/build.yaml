@@ -38,6 +38,10 @@ jobs:
           echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'qa' && 'QA' || 'Production' }}" >> $GITHUB_ENV
           echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-prod' }}" >> $GITHUB_ENV
 
+      # Replace with getting the version and artifactId from GitHub variables using the source branch
+      # Develop -> Develop_Config -> version
+      # QA -> QA_Config -> version
+      # Prod -> Prod_Config -> version
       - name: Read current version from pom.xml
         id: read_version
         run: |
@@ -58,11 +62,13 @@ jobs:
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
+      # Update the artifact ID as well as the version
       - name: Update pom.xml with new version
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
           mvn versions:set -DnewVersion=${{ env.new_version }} -DgenerateBackupPoms=false
 
+      # REMOVE
       - name: Commit updated pom.xml
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
@@ -88,3 +94,13 @@ jobs:
           -Denv=${{ env.env }} \
           -Dapp.name=test-api-pipeline \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
+
+      # Add step to update the variable in GitHub action
+      # Create the new Config using the new version and artifactId {NEW_CONFIG}
+        # curl -L \
+        # -X PATCH \
+        # -H "Accept: application/vnd.github+json" \
+        # -H "Authorization: Bearer <YOUR-TOKEN>"\
+        # -H "X-GitHub-Api-Version: 2022-11-28" \
+        # https://api.github.com/repos/OWNER/REPO/actions/variables/{Source_Branch} \
+        # -d '{NEW_CONFIG}'
