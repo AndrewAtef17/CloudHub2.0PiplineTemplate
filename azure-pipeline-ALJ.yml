@@ -1,0 +1,120 @@
+trigger:
+  branches:
+    include:
+    - develop
+    
+pool:
+  vmImage: 'ubuntu-latest'
+  
+parameters:
+  - name: replicas
+    displayName: Replicas
+    type: number
+    default: 1
+    values:
+    - 1
+    - 2
+    - 3
+    - 4
+  - name: vCores
+    displayName: vCores
+    type: string
+    default: 0.1
+    values:
+    - 0.1
+    - 0.2
+    - 0.5
+    - 1
+  
+variables:
+- group: mulesoft-vars-group
+- name: replica.count
+  ${{if eq(parameters.replicas, '')}}:
+      value: 1
+  ${{else}}:
+      value: ${{ parameters.replicas }}
+- name: replica.size
+  ${{if eq(parameters.vCores, '')}}:
+      value: 0.1
+  ${{else}}:
+      value: ${{ parameters.vCores }}
+- ${{ if contains(variables['build.SourceBranchName'], 'develop') }}:
+  - name: MAVEN_OPTS
+    value: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER) -Dprivate.space=alj-nonprod-ps-eu-central-1 -Dmule.vault.key=$(encrypt.dev.key) -DskipTests -Ddeployment.env=dev -Dmule.version=4.6.6 -Denv=dev -Danypoint.platform.client.secret=$(anypoint.platform.parts.dev.client.secret) -Danypoint.platform.client.id=$(anypoint.platform.parts.dev.client.id)  -Dreplica.count=$(replica.count) -Dreplica.size=$(replica.size)'
+- ${{ if contains(variables['build.SourceBranch'], 'release') }}:
+  - name: MAVEN_OPTS
+    value: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER) -Dprivate.space=alj-nonprod-ps-eu-central-1 -Dmaven.repo.local=$(MAVEN_CACHE_FOLDER) -Dmule.vault.key=$(encrypt.qa.key) -DskipTests -Ddeployment.env=qa -Dmule.version=4.6.6 -Denv=qa -Danypoint.platform.client.secret=$(anypoint.platform.parts.qa.client.secret) -Danypoint.platform.client.id=$(anypoint.platform.parts.qa.client.id)  -Dreplica.count=$(replica.count) -Dreplica.size=$(replica.size)'
+- name: currentBranch
+  value: $(Build.SourceBranchName)
+- name: isMain
+  value: $[eq(variables['build.SourceBranchName'], 'main')]
+- name: MAVEN_CACHE_FOLDER
+  value: $(Pipeline.Workspace)/.m2/repository
+
+stages:
+- stage: BuildAndTest
+  condition: and(succeeded(), eq(variables.isMain, 'false'))
+  displayName: Build and Unit Test Application 
+  jobs:
+  - job: Build
+    steps:
+
+    - task: Cache@2
+      inputs:
+        key: '$(Build.SourcesDirectory)/pom.xml'
+        path: '$(MAVEN_CACHE_FOLDER)'
+      displayName: Cache Maven local repo
+    
+    - task: DownloadSecureFile@1
+      displayName: Download settings.xml needed for Anypoint authentication
+      name: settingsxml
+      inputs:
+        secureFile: 'settings.xml'
+
+    - script: 'wget https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.zip'
+
+    - task: ExtractFiles@1
+      inputs:
+          archiveFilePatterns: 'apache-maven-3.9.6-bin.zip'
+          destinationFolder: '$(build.sourcesdirectory)/maven'
+
+    - task: Maven@3
+      displayName: Package and Unit Test project 
+      inputs:
+        mavenPomFile: 'pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.8'
+        jdkArchitectureOption: 'x64'
+        mavenVersionOption: 'Path'
+        mavenDirectory: '$(build.sourcesdirectory)/maven/apache-maven-3.9.6'
+        mavenSetM2Home: true
+        
+        goals: clean deploy $(MAVEN_OPTS) -s $(settingsxml.secureFilePath)
+
+    - task: Maven@3
+      displayName: Deploy project  
+      inputs:
+        mavenPomFile: 'pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.8'
+        jdkArchitectureOption: 'x64'
+        mavenVersionOption: 'Path'
+        mavenDirectory: '$(build.sourcesdirectory)/maven/apache-maven-3.9.6'
+        mavenSetM2Home: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+
+        goals: clean deploy -DmuleDeploy $(MAVEN_OPTS) -s $(settingsxml.secureFilePath)
+
+    - task: CopyFiles@2
+      displayName: Copy Build files to staging directory 
+      inputs:
+        contents: 'target/*.jar'
+        targetFolder: ${Build.ArtifactStagingDirectory}
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish contents of staging directory for deploy
+      inputs:
+        PathtoPublish: ${Build.ArtifactStagingDirectory} 
+        ArtifactName: drop
