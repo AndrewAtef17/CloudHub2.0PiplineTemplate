@@ -118,7 +118,7 @@ jobs:
 
           echo "Updating GitHub variable $VAR_NAME with value: $NEW_VERSION"
 
-          curl --location --request PATCH "https://api.github.com/repos/CobergTech/KRH-test-api/actions/variables/$VAR_NAME" \
+          curl --location --request PATCH "https://api.github.com/repos/AndrewAtef17/CloudHub2.0PiplineTemplate/actions/variables/$VAR_NAME" \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
