@@ -30,8 +30,8 @@ jobs:
       - name: Set environment variables
         id: set_env
         run: |
-          echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'qa' && 'QA' || 'Production' }}" >> $GITHUB_ENV
-          echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-production' }}" >> $GITHUB_ENV
+          echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'QA' && 'QA' || 'Production' }}" >> $GITHUB_ENV
+          echo "app_name_suffix=${{ github.event_name == 'push' && '-app-dev' || github.base_ref == 'QA' && '-app-qa' || 'app-prod' }}" >> $GITHUB_ENV
           echo "DEVELOP_VERSION=${{ vars.DEVELOP_VERSION }}" >> $GITHUB_ENV
           echo "QA_VERSION=${{ vars.QA_VERSION }}" >> $GITHUB_ENV
           echo "PRODUCTION_VERSION=${{ vars.PRODUCTION_VERSION }}" >> $GITHUB_ENV
