@@ -106,7 +106,7 @@ jobs:
           -Denv=${{ env.env }} \
           -Dapp.name=${{ vars.artifactId_prefix }} \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
-
+ 
       - name: Update GitHub environment variables with new version and artifactId
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
