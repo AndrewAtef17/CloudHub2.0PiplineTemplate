@@ -2,9 +2,9 @@ name: Publish to Exchange & Deploy to CH2.0
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ Develop ]
   pull_request:
-    branches: [ develop, QA, production ]  # Specify branches for PRss
+    branches: [ Develop, QA, Production ]  # Specify branches for PRss
     
 
 jobs:         
@@ -55,11 +55,11 @@ jobs:
           echo "Target Branch: $TARGET_BRANCH"
 
           # Determine the correct version variable based on the branch
-          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+          if [[ "$TARGET_BRANCH" == "Develop" ]]; then
             TARGET_VERSION=${{ vars.DEVELOP_VERSION }}
           elif [[ "$TARGET_BRANCH" == "QA" ]]; then
             TARGET_VERSION=${{ vars.QA_VERSION }}
-          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+          elif [[ "$TARGET_BRANCH" == "Production" ]]; then
             TARGET_VERSION=${{ vars.PRODUCTION_VERSION }}
           else
             echo "Unknown branch. Exiting..."
@@ -115,11 +115,11 @@ jobs:
             TARGET_BRANCH=$(echo "$GITHUB_REF" | sed 's|refs/heads/||')
           fi
           echo "Target Branch: $TARGET_BRANCH"
-          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+          if [[ "$TARGET_BRANCH" == "Develop" ]]; then
             VAR_NAME="DEVELOP_VERSION"
           elif [[ "$TARGET_BRANCH" == "QA" ]]; then
             VAR_NAME="QA_VERSION"
-          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+          elif [[ "$TARGET_BRANCH" == "Production" ]]; then
             VAR_NAME="PRODUCTION_VERSION"
           else
             echo "Unknown branch. Skipping update."
