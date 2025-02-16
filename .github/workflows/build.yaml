@@ -73,7 +73,7 @@ jobs:
           echo "New Version for $TARGET_BRANCH: $NEW_VERSION"
 
           # Set environment variables for use in the pipeline
-          echo "artifactId=${{ vars.artifactId_prefix }}-${{ env.app_name_suffix }}" >> $GITHUB_ENV
+          echo "artifactId=${{ vars.artifactId_prefix }}${{ env.app_name_suffix }}" >> $GITHUB_ENV
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Update pom.xml with new artifactId and version
