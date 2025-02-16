@@ -4,11 +4,8 @@ on:
   push:
     branches: [ develop ]
   pull_request:
-    branches: [ develop, qa, production ]  # Specify branches for PRss
+    branches: [ develop, QA, production ]  # Specify branches for PRss
     
-# Add permissions for the GITHUB_TOKEN
-permissions:
-  contents: write  # Allows pushing changes to the repository
 
 jobs:         
   build:
@@ -16,8 +13,6 @@ jobs:
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}  # Use GITHUB_TOKEN by default, 
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -37,40 +32,57 @@ jobs:
         run: |
           echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'qa' && 'QA' || 'Production' }}" >> $GITHUB_ENV
           echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-prod' }}" >> $GITHUB_ENV
+          echo "DEVELOP_VERSION=${{ vars.DEVELOP_VERSION }}" >> $GITHUB_ENV
+          echo "QA_VERSION=${{ vars.QA_VERSION }}" >> $GITHUB_ENV
+          echo "PRODUCTION_VERSION=${{ vars.PRODUCTION_VERSION }}" >> $GITHUB_ENV
+          echo "ARTIFACT_ID_PREFIX=${{ vars.artifactId_prefix }}" >> $GITHUB_ENV
 
-      - name: Read current version from pom.xml
-        id: read_version
+      - name: Print Retrieved Values
         run: |
-          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Current version: $CURRENT_VERSION"
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+          echo "Develop Version: $DEVELOP_VERSION"
+          echo "QA Version: $QA_VERSION"
+          echo "Production Version: $PRODUCTION_VERSION"
+          echo "Artifact ID Prefix: $ARTIFACT_ID_PREFIX"
 
-      - name: Increment version
-        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-        id: increment_version
+      - name: Set artifactId based on Target Branch
         run: |
-          CURRENT_VERSION=${{ env.current_version }}
-          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          echo "Target Branch: $TARGET_BRANCH"
+
+          # Determine the correct version variable based on the branch
+          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+            TARGET_VERSION=${{ vars.DEVELOP_VERSION }}
+          elif [[ "$TARGET_BRANCH" == "QA" ]]; then
+            TARGET_VERSION=${{ vars.QA_VERSION }}
+          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+            TARGET_VERSION=${{ vars.PRODUCTION_VERSION }}
+          else
+            echo "Unknown branch. Exiting..."
+            exit 1
+          fi
+
+          echo "Current Version for $TARGET_BRANCH: $TARGET_VERSION"
+ 
+          # Increment version
+          MAJOR=$(echo $TARGET_VERSION | cut -d. -f1)
+          MINOR=$(echo $TARGET_VERSION | cut -d. -f2)
+          PATCH=$(echo $TARGET_VERSION | cut -d. -f3)
           NEW_PATCH=$((PATCH + 1))
           NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
-          echo "New version: $NEW_VERSION"
-          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
-      - name: Update pom.xml with new version
-        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-        run: |
-          mvn versions:set -DnewVersion=${{ env.new_version }} -DgenerateBackupPoms=false
+          echo "New Version for $TARGET_BRANCH: $NEW_VERSION"
 
-      - name: Commit updated pom.xml
-        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+          # Set environment variables for use in the pipeline
+          echo "artifactId=${{ vars.artifactId_prefix }}${{ env.app_name_suffix }}" >> $GITHUB_ENV
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update pom.xml with new artifactId and version
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add pom.xml
-          git commit -m "Increment version to ${{ env.new_version }}"
-          git push origin HEAD:develop
+          sed -i "0,/<artifactId>.*<\/artifactId>/s|<artifactId>.*</artifactId>|<artifactId>${{ env.artifactId }}</artifactId>|" pom.xml
+          sed -i "0,/<version>.*<\/version>/s|<version>.*</version>|<version>${{ env.NEW_VERSION }}</version>|" pom.xml
+          
+          echo "Updated pom.xml:"
+          cat pom.xml
           
       - name: Publish to Exchange
         run: |
@@ -78,13 +90,38 @@ jobs:
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
-          -Dapp.name=test-api-pipeline \
+          -Dapp.name=${{ vars.artifactId_prefix }} \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
+
       - name: Deploy to CloudHub 2.0
         run: |
           mvn deploy --settings .maven/settings.xml -DskipMunitTests -DmuleDeploy \
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
-          -Dapp.name=test-api-pipeline \
+          -Dapp.name=${{ vars.artifactId_prefix }} \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
+
+      - name: Update GitHub environment variables with new version and artifactId
+        run: |
+          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+            VAR_NAME="DEVELOP_VERSION"
+          elif [[ "$TARGET_BRANCH" == "QA" ]]; then
+            VAR_NAME="QA_VERSION"
+          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+            VAR_NAME="PRODUCTION_VERSION"
+          else
+            echo "Unknown branch. Skipping update."
+            exit 1
+          fi
+
+          echo "Updating GitHub variable $VAR_NAME with value: $NEW_VERSION"
+
+          curl --location --request PATCH "https://api.github.com/repos/AndrewAtef17/CloudHub2.0PiplineTemplate/actions/variables/$VAR_NAME" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/json" \
+            --data "{\"name\":\"$VAR_NAME\",\"value\":\"$NEW_VERSION\"}"
+ 
