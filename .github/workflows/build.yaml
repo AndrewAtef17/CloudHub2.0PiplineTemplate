@@ -109,7 +109,12 @@ jobs:
 
       - name: Update GitHub environment variables with new version and artifactId
         run: |
-          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            TARGET_BRANCH="$GITHUB_BASE_REF"
+          else
+            TARGET_BRANCH=$(echo "$GITHUB_REF" | sed 's|refs/heads/||')
+          fi
+          echo "Target Branch: $TARGET_BRANCH"
           if [[ "$TARGET_BRANCH" == "develop" ]]; then
             VAR_NAME="DEVELOP_VERSION"
           elif [[ "$TARGET_BRANCH" == "QA" ]]; then
