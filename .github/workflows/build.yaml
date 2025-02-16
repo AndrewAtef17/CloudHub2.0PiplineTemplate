@@ -46,7 +46,12 @@ jobs:
 
       - name: Set artifactId based on Target Branch
         run: |
-          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          # Determine target branch based on event type
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            TARGET_BRANCH="$GITHUB_BASE_REF"
+          else
+            TARGET_BRANCH=$(echo "$GITHUB_REF" | sed 's|refs/heads/||')
+          fi
           echo "Target Branch: $TARGET_BRANCH"
 
           # Determine the correct version variable based on the branch
