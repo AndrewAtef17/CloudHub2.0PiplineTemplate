@@ -62,7 +62,7 @@ jobs:
           fi
 
           echo "Current Version for $TARGET_BRANCH: $TARGET_VERSION"
-
+ 
           # Increment version
           MAJOR=$(echo $TARGET_VERSION | cut -d. -f1)
           MINOR=$(echo $TARGET_VERSION | cut -d. -f2)
