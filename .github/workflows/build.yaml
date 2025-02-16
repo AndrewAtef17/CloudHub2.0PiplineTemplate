@@ -46,7 +46,7 @@ jobs:
 
       - name: Set artifactId based on Target Branch
         run: |
-          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed -E 's|refs/(heads|pull)/||' | sed -E 's|/merge||')
+          TARGET_BRANCH=$(echo "${{ github.ref }}" | sed -E 's|refs/(heads|pull)/||g' | sed -E 's|/merge||g')
           echo "Target Branch: $TARGET_BRANCH"
 
           # Determine the correct version variable based on the branch
