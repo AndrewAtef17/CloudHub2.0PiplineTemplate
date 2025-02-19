@@ -2,7 +2,7 @@ name: Publish to Exchange & Deploy to CH2.0
 
 on:
   pull_request:
-    types: [opened, synchronize, milestoned]  # Include 'milestoned' directly under pull_request
+    types: [synchronize, milestoned]  # Include 'milestoned' directly under pull_request
     branches: [Develop, QA, Production]
 
 jobs:
