@@ -22,7 +22,7 @@ jobs:
             echo "Milestone is neither 'Ready for Deployment' nor 'Ready for Validation'. Exiting..."
             exit 1
           fi
-
+x
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -99,20 +99,20 @@ jobs:
           echo "Updated pom.xml:"
           cat pom.xml
 
-      - name: Deploy Publish to Exchange 
-        if: ${{ github.event.pull_request.milestone.title == 'Ready for Deployment' }}
+      - name: Validate Publish to Exchange 
+        if: ${{ github.event.pull_request.milestone.title == 'Ready for Validation' }}
         run: |
-          mvn deploy --settings .maven/settings.xml -DskipMunitTests \
+          mvn verify --settings .maven/settings.xml -DskipMunitTests \
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
           -Dapp.name=${{ vars.artifactId_prefix }} \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
 
-      - name: validate Publish to Exchange 
-        if: ${{ github.event.pull_request.milestone.title == 'Ready for Validation' }}
+      - name: Deploy Publish to Exchange 
+        if: ${{ github.event.pull_request.milestone.title == 'Ready for Deployment' }}
         run: |
-          mvn verify --settings .maven/settings.xml -DskipMunitTests \
+          mvn deploy --settings .maven/settings.xml -DskipMunitTests \
           -Dclient.id="${{ secrets.CONNECTED_APP_CLIENT_ID }}" \
           -Dclient.secret="${{ secrets.CONNECTED_APP_CLIENT_SECRET }}" \
           -Denv=${{ env.env }} \
