@@ -2,9 +2,9 @@ name: Publish to Exchange & Deploy to CH2.0
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ Develop ]
   pull_request:
-    branches: [ develop, QA, production ]  # Specify branches for PRss
+    branches: [ Develop, QA, Production ]  # Specify branches for PRss
     
 
 jobs:         
@@ -30,8 +30,8 @@ jobs:
       - name: Set environment variables
         id: set_env
         run: |
-          echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'qa' && 'QA' || 'Production' }}" >> $GITHUB_ENV
-          echo "app_name_suffix=${{ github.event_name == 'push' && '-dev' || github.base_ref == 'qa' && '-qa' || '-prod' }}" >> $GITHUB_ENV
+          echo "env=${{ github.event_name == 'push' && 'Develop' || github.base_ref == 'QA' && 'QA' || 'Production' }}" >> $GITHUB_ENV
+          echo "app_name_suffix=${{ github.event_name == 'push' && '-app-dev' || github.base_ref == 'QA' && '-app-qa' || '-app-prod' }}" >> $GITHUB_ENV
           echo "DEVELOP_VERSION=${{ vars.DEVELOP_VERSION }}" >> $GITHUB_ENV
           echo "QA_VERSION=${{ vars.QA_VERSION }}" >> $GITHUB_ENV
           echo "PRODUCTION_VERSION=${{ vars.PRODUCTION_VERSION }}" >> $GITHUB_ENV
@@ -55,11 +55,11 @@ jobs:
           echo "Target Branch: $TARGET_BRANCH"
 
           # Determine the correct version variable based on the branch
-          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+          if [[ "$TARGET_BRANCH" == "Develop" ]]; then
             TARGET_VERSION=${{ vars.DEVELOP_VERSION }}
           elif [[ "$TARGET_BRANCH" == "QA" ]]; then
             TARGET_VERSION=${{ vars.QA_VERSION }}
-          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+          elif [[ "$TARGET_BRANCH" == "Production" ]]; then
             TARGET_VERSION=${{ vars.PRODUCTION_VERSION }}
           else
             echo "Unknown branch. Exiting..."
@@ -106,7 +106,7 @@ jobs:
           -Denv=${{ env.env }} \
           -Dapp.name=${{ vars.artifactId_prefix }} \
           -Dapp.nameSuffix=${{ env.app_name_suffix }}
-
+ 
       - name: Update GitHub environment variables with new version and artifactId
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
@@ -115,11 +115,11 @@ jobs:
             TARGET_BRANCH=$(echo "$GITHUB_REF" | sed 's|refs/heads/||')
           fi
           echo "Target Branch: $TARGET_BRANCH"
-          if [[ "$TARGET_BRANCH" == "develop" ]]; then
+          if [[ "$TARGET_BRANCH" == "Develop" ]]; then
             VAR_NAME="DEVELOP_VERSION"
           elif [[ "$TARGET_BRANCH" == "QA" ]]; then
             VAR_NAME="QA_VERSION"
-          elif [[ "$TARGET_BRANCH" == "production" ]]; then
+          elif [[ "$TARGET_BRANCH" == "Production" ]]; then
             VAR_NAME="PRODUCTION_VERSION"
           else
             echo "Unknown branch. Skipping update."
@@ -128,7 +128,7 @@ jobs:
 
           echo "Updating GitHub variable $VAR_NAME with value: $NEW_VERSION"
 
-          curl --location --request PATCH "https://api.github.com/repos/AndrewAtef17/CloudHub2.0PiplineTemplate/actions/variables/$VAR_NAME" \
+          curl --location --request PATCH "https://api.github.com/repos/${{ github.repository }}/actions/variables/$VAR_NAME" \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
